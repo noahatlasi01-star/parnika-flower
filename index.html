@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Parnika flower</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pollen: #f5fbff;
+    box-sizing: border-box;
+  }
+  *{ box-sizing: inherit; }
+  html,body{
+    height:100%;
+    margin:0;
+    background: radial-gradient(120% 90% at 50% 78%, #060f2c 0%, #000000 60%);
+    overflow:hidden;
+    font-family: 'Vazirmatn', Tahoma, Arial, sans-serif;
+  }
+
+  .stage{
+    position:relative;
+    width:100vw;
+    height:100%;
+    min-height: 100dvh;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    padding-bottom: calc(5vh + env(safe-area-inset-bottom, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .stars{ position:absolute; inset:0; pointer-events:none; }
+  .star{
+    position:absolute; width:2px; height:2px; border-radius:50%;
+    background:#bcd6ff; animation: twinkle 3.5s ease-in-out infinite; opacity:0.4;
+  }
+  @keyframes twinkle{
+    0%,100%{ opacity:0.15; transform:scale(1); }
+    50%{ opacity:0.85; transform:scale(1.6); }
+  }
+
+  .flower-wrap{
+    position:relative;
+    width: min(74vw, 56vh, 480px);
+    cursor:pointer;
+    transition: transform 0.35s ease;
+    touch-action: manipulation;
+    user-select:none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .flower-wrap:hover{ transform: translateY(-3px) scale(1.015); }
+  .flower-wrap.busy{ cursor:default; }
+
+  svg.flower{
+    width:100%; height:auto; display:block; overflow:visible;
+    animation: breathe 5.5s ease-in-out infinite;
+  }
+  @keyframes breathe{
+    0%,100%{ filter: brightness(1) saturate(1); }
+    50%{ filter: brightness(1.16) saturate(1.15); }
+  }
+
+  .petal-fill{ fill: url(#petalGrad); filter: url(#softGlow); }
+  .petal-rim{ fill:none; stroke: rgba(225,244,255,0.55); stroke-width: 1.1; }
+  .petal-vein{ stroke: rgba(200,232,255,0.5); stroke-width: 1; fill:none; }
+  .petal-vein-side{ stroke: rgba(190,225,255,0.32); stroke-width: 0.8; fill:none; }
+  .petal-tip-glow{ fill: url(#tipGrad); filter: url(#softGlow); }
+  .speck{ fill:#ffffff; filter: url(#speckGlow); }
+  .layer-back{ opacity: 0.85; }
+
+  .leaf{ fill: url(#leafGrad); stroke: rgba(150,200,255,0.5); stroke-width: 1.2; filter: url(#softGlow); }
+  .stem{ stroke: url(#leafGrad); stroke-width: 6; stroke-linecap: round; filter: url(#softGlow); }
+  .stamen-line{ stroke:#cfe6ff; stroke-width:1.6; stroke-linecap:round; filter:url(#softGlow); }
+  .pollen-tip{ fill: var(--pollen); filter: url(#pollenGlow); }
+  .core-glow{ fill: url(#coreGrad); }
+  .core-bright{ fill: url(#coreBrightGrad); }
+  .halo{ fill: url(#haloGrad); }
+  .ray{ stroke: url(#rayGrad); stroke-width: 1.4; filter: url(#softGlow); }
+
+  .hint{
+    position:absolute;
+    bottom: calc(1.4vh + env(safe-area-inset-bottom, 0px));
+    left:50%; transform: translateX(-50%);
+    color: rgba(190,215,255,0.55);
+    font-size: 13px; letter-spacing: 0.02em;
+    pointer-events:none; transition: opacity 0.4s ease;
+    white-space: nowrap;
+  }
+  .hint.hide{ opacity:0; }
+
+  canvas.effect{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+
+  @media (prefers-reduced-motion: reduce){
+    svg.flower{ animation:none; }
+    .star{ animation:none; opacity:0.3; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <div class="stars" id="stars"></div>
+  <canvas class="effect" id="effectCanvas"></canvas>
+
+  <div class="flower-wrap" id="flowerWrap">
+    <svg class="flower" id="flowerSvg" viewBox="0 0 800 960" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="petalGrad" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%"  stop-color="#9fcdff"/>
+          <stop offset="14%" stop-color="#3f7ce6"/>
+          <stop offset="50%" stop-color="#0a1f5e"/>
+          <stop offset="82%" stop-color="#2f6fe0"/>
+          <stop offset="100%" stop-color="#eef8ff"/>
+        </linearGradient>
+        <radialGradient id="tipGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+          <stop offset="60%" stop-color="#bfe4ff" stop-opacity="0.4"/>
+          <stop offset="100%" stop-color="#bfe4ff" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="leafGrad" cx="30%" cy="0%" r="120%">
+          <stop offset="0%" stop-color="#3a7fe6"/>
+          <stop offset="60%" stop-color="#0e2c80"/>
+          <stop offset="100%" stop-color="#03082a"/>
+        </radialGradient>
+        <radialGradient id="coreGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#eaf5ff" stop-opacity="0.9"/>
+          <stop offset="45%" stop-color="#5aa3ff" stop-opacity="0.45"/>
+          <stop offset="100%" stop-color="#5aa3ff" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="coreBrightGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="haloGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#2f6fe0" stop-opacity="0.4"/>
+          <stop offset="60%" stop-color="#123a9e" stop-opacity="0.14"/>
+          <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="rayGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#eaf5ff" stop-opacity="0.55"/>
+          <stop offset="100%" stop-color="#eaf5ff" stop-opacity="0"/>
+        </linearGradient>
+
+        <filter id="softGlow" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b1"/>
+          <feMerge><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="speckGlow" x="-400%" y="-400%" width="900%" height="900%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.8" result="b1"/>
+          <feMerge><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="pollenGlow" x="-300%" y="-300%" width="700%" height="700%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.6" result="b1"/>
+          <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="b2"/>
+          <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <ellipse class="halo" cx="400" cy="560" rx="380" ry="360"/>
+
+      <line class="stem" x1="400" y1="640" x2="400" y2="955"/>
+
+      <g id="leaves"></g>
+
+      <g id="rays" transform="translate(400,638)"></g>
+
+      <!-- back layer of petals, full circle around the center -->
+      <g id="petalGroupBack" transform="translate(400,638)"></g>
+
+      <!-- short stamens nestled at the flower's throat, peeking out between petals -->
+      <g id="stamens" stroke-linecap="round"></g>
+
+      <circle class="core-glow" cx="400" cy="634" r="80"/>
+
+      <!-- front layer of petals, overlapping the stamen bases so pollen looks like it emerges from behind them -->
+      <g id="petalGroupFront" transform="translate(400,638)"></g>
+
+      <circle class="core-bright" cx="400" cy="636" r="18"/>
+    </svg>
+  </div>
+
+  <div class="hint" id="hint">روش کلیک کن قشنگم</div>
+</div>
+
+<script>
+(function(){
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs){
+    const e = document.createElementNS(NS, tag);
+    for(const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  // ---- elegant pointed petal, bright at base & tip, dark through the belly ----
+  const PETAL_D = "M0,0 C-40,-58 -52,-136 -42,-206 C-36,-246 -18,-272 0,-278 C18,-272 36,-246 42,-206 C52,-136 40,-58 0,0 Z";
+  const VEIN_MAIN = "M0,-6 C-2,-90 2,-192 0,-268";
+  const VEIN_L    = "M-8,-24 C-18,-84 -15,-152 -7,-210";
+  const VEIN_R    = "M8,-24 C18,-84 15,-152 7,-210";
+  const SPECKS = [
+    {x:-18,y:-62,r:1.6},{x:20,y:-96,r:1.3},{x:-26,y:-148,r:1.5},
+    {x:14,y:-188,r:1.2},{x:-6,y:-228,r:1.4},{x:26,y:-40,r:1.1}
+  ];
+
+  function buildPetal(index, curlSign){
+    const g = el('g', {});
+    g.appendChild(el('path', { class:'petal-fill', d: PETAL_D }));
+    g.appendChild(el('path', { class:'petal-rim', d: PETAL_D, transform:'scale(0.95)' }));
+    g.appendChild(el('path', { class:'petal-vein', d: VEIN_MAIN }));
+    g.appendChild(el('path', { class:'petal-vein-side', d: VEIN_L }));
+    g.appendChild(el('path', { class:'petal-vein-side', d: VEIN_R }));
+    SPECKS.forEach(s=>{
+      g.appendChild(el('circle', { class:'speck', cx:s.x, cy:s.y, r:s.r, opacity: 0.5 + (index%3)*0.15 }));
+    });
+    const tip = el('ellipse', {
+      class:'petal-tip-glow', cx:0, cy:-268, rx:16, ry:32,
+      transform:`rotate(${curlSign*28} 0 -268)`
+    });
+    g.appendChild(tip);
+    return g;
+  }
+
+  // full 360-degree ring of petals, two interleaved layers
+  function buildPetalLayer(container, count, scale, angleOffset, isBack, swayAmp, swayDurBase){
+    const step = 360/count;
+    for(let i=0;i<count;i++){
+      const angle = -90 + i*step + angleOffset;
+      const outer = el('g', { transform:`rotate(${angle})` });
+      const sway = el('g', { class: isBack ? 'layer-back' : '' });
+      if(scale !== 1) sway.setAttribute('transform', `scale(${scale})`);
+      const dur = swayDurBase + (i % 3) * 0.4;
+      const begin = (i * 0.16).toFixed(2);
+      sway.appendChild(el('animateTransform', {
+        attributeName:'transform', type:'rotate', additive:'sum',
+        values:`${-swayAmp} 0 0; ${swayAmp} 0 0; ${-swayAmp} 0 0`,
+        dur:`${dur}s`, begin:`${begin}s`, repeatCount:'indefinite'
+      }));
+      sway.appendChild(buildPetal(i, i % 2 === 0 ? 1 : -1));
+      outer.appendChild(sway);
+      container.appendChild(outer);
+    }
+  }
+
+  const PETAL_COUNT = 9;
+  buildPetalLayer(document.getElementById('petalGroupBack'), PETAL_COUNT, 1.1, 0, true, 1.6, 6);
+  buildPetalLayer(document.getElementById('petalGroupFront'), PETAL_COUNT, 0.82, (360/PETAL_COUNT)/2, false, 2.1, 5);
+
+  // ---- radiating light rays behind petals, full circle ----
+  const raysGroup = document.getElementById('rays');
+  const rayCount = 16;
+  for(let i=0;i<rayCount;i++){
+    const angle = (360/rayCount) * i;
+    const len = 70 + (i % 4) * 16;
+    const rad = angle * Math.PI/180;
+    const x2 = Math.sin(rad) * len;
+    const y2 = -Math.cos(rad) * len;
+    const ray = el('line', { class:'ray', x1:0, y1:0, x2, y2, opacity: 0.5 });
+    ray.appendChild(el('animate', {
+      attributeName:'opacity', values:'0.25;0.6;0.25',
+      dur:`${3 + (i%5)*0.4}s`, begin:`${i*0.12}s`, repeatCount:'indefinite'
+    }));
+    raysGroup.appendChild(ray);
+  }
+
+  // ---- leaves ----
+  const leafDefs = [
+    { d:"M400,760 C300,750 190,780 100,860 C220,830 320,820 400,790 Z", ox:400, oy:775 },
+    { d:"M400,700 C300,660 170,650 60,690 C190,680 300,690 400,730 Z", ox:400, oy:715 },
+    { d:"M400,760 C500,750 610,780 700,860 C580,830 480,820 400,790 Z", ox:400, oy:775 },
+    { d:"M400,700 C500,660 630,650 740,690 C610,680 500,690 400,730 Z", ox:400, oy:715 },
+    { d:"M400,820 C340,830 280,880 250,915 C310,890 360,870 400,850 Z", ox:400, oy:835 },
+    { d:"M400,820 C460,830 520,880 550,915 C490,890 440,870 400,850 Z", ox:400, oy:835 }
+  ];
+  const leavesGroup = document.getElementById('leaves');
+  leafDefs.forEach((L, i)=>{
+    const g = el('g', {});
+    g.appendChild(el('animateTransform', {
+      attributeName:'transform', type:'rotate', additive:'sum',
+      values:`-1.4 ${L.ox} ${L.oy}; 1.4 ${L.ox} ${L.oy}; -1.4 ${L.ox} ${L.oy}`,
+      dur:`${7 + i*0.5}s`, begin:`${i*0.3}s`, repeatCount:'indefinite'
+    }));
+    g.appendChild(el('path', { class:'leaf', d:L.d }));
+    leavesGroup.appendChild(g);
+  });
+
+  // ---- short stamens all around the flower's throat, pollen tips peeking between petals ----
+  const stamensGroup = document.getElementById('stamens');
+  const stamenCount = 9;
+  const stamenData = [];
+  for(let i=0;i<stamenCount;i++){
+    const angle = i * (360/stamenCount);
+    const len = 44 + (i % 3) * 9;
+    const rad = angle * Math.PI/180;
+    const x2 = 400 + Math.sin(rad) * len;
+    const y2 = 638 - Math.cos(rad) * len;
+    stamensGroup.appendChild(el('line', { class:'stamen-line', x1:400, y1:638, x2, y2 }));
+    const tip = el('circle', { class:'pollen-tip', cx:x2, cy:y2, r:6 });
+    tip.appendChild(el('animate', { attributeName:'r', values:'5.5;7.5;5.5', dur:`${2+i*0.15}s`, begin:`${i*0.12}s`, repeatCount:'indefinite' }));
+    tip.appendChild(el('animate', { attributeName:'opacity', values:'0.75;1;0.75', dur:`${2+i*0.15}s`, begin:`${i*0.12}s`, repeatCount:'indefinite' }));
+    stamensGroup.appendChild(tip);
+    stamenData.push(tip);
+  }
+
+  const starsWrap = document.getElementById('stars');
+  for(let i=0;i<26;i++){
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.left = (Math.random()*100) + '%';
+    s.style.top = (Math.random()*70) + '%';
+    s.style.animationDelay = (Math.random()*3.5) + 's';
+    s.style.animationDuration = (2.5 + Math.random()*3) + 's';
+    starsWrap.appendChild(s);
+  }
+
+  if(document.fonts && document.fonts.load){
+    document.fonts.load("800 60px 'Vazirmatn'").catch(()=>{});
+  }
+
+  // ---- canvas / pollen-text effect ----
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('effectCanvas');
+  const ctx = canvas.getContext('2d');
+  const flowerWrap = document.getElementById('flowerWrap');
+  const hint = document.getElementById('hint');
+
+  let dpr = Math.max(1, window.devicePixelRatio || 1);
+
+  function resizeCanvas(){
+    const rect = stage.getBoundingClientRect();
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  resizeCanvas();
+  window.addEventListener('resize', ()=>{ if(!busy) resizeCanvas(); });
+  window.addEventListener('orientationchange', ()=>{ if(!busy) setTimeout(resizeCanvas, 200); });
+
+  function getPollenStartPoints(){
+    const stageRect = stage.getBoundingClientRect();
+    return stamenData.map(elm=>{
+      const r = elm.getBoundingClientRect();
+      return { x: r.left + r.width/2 - stageRect.left, y: r.top + r.height/2 - stageRect.top };
+    });
+  }
+
+  const SENTENCE = "این برای توعه";
+
+  function getTextTargets(){
+    const stageRect = stage.getBoundingClientRect();
+    const w = Math.max(1, Math.round(stageRect.width));
+    const h = Math.max(1, Math.round(stageRect.height));
+
+    const off = document.createElement('canvas');
+    off.width = w; off.height = h;
+    const octx = off.getContext('2d');
+    octx.textAlign = 'center';
+    octx.textBaseline = 'middle';
+    octx.direction = 'rtl';
+    octx.fillStyle = '#ffffff';
+
+    const cx = w/2;
+    const cy = h * 0.20;
+
+    let fontSize = Math.max(28, Math.min(64, w * 0.095));
+    function fits(size){
+      octx.font = `800 ${size}px 'Vazirmatn', Tahoma, Arial, sans-serif`;
+      return octx.measureText(SENTENCE).width < w * 0.86;
+    }
+    while(fontSize > 18 && !fits(fontSize)) fontSize -= 2;
+
+    octx.clearRect(0,0,w,h);
+    octx.font = `800 ${fontSize}px 'Vazirmatn', Tahoma, Arial, sans-serif`;
+    octx.fillText(SENTENCE, cx, cy);
+
+    const data = octx.getImageData(0,0,w,h).data;
+    const step = Math.max(2, Math.round(w/280));
+    const points = [];
+    for(let y=0; y<h; y+=step){
+      for(let x=0; x<w; x+=step){
+        const idx = (y*w + x) * 4;
+        if(data[idx+3] > 110) points.push({x, y});
+      }
+    }
+    for(let i=points.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [points[i],points[j]] = [points[j],points[i]];
+    }
+    return points;
+  }
+
+  function easeOutCubic(t){ return 1 - Math.pow(1-t, 3); }
+  function easeInOutSine(t){ return -(Math.cos(Math.PI*t)-1)/2; }
+
+  let busy = false;
+  let particles = [];
+
+  const GATHER_MS = 1300;
+  const HOLD_MS = 2600;
+  const DISPERSE_MS = 1300;
+  const MAX_PARTICLES = 900;
+
+  function startEffect(){
+    if(busy) return;
+    busy = true;
+    flowerWrap.classList.add('busy');
+    hint.classList.add('hide');
+
+    resizeCanvas();
+    const starts = getPollenStartPoints();
+    let targets = getTextTargets();
+
+    if(targets.length === 0){
+      busy = false;
+      flowerWrap.classList.remove('busy');
+      hint.classList.remove('hide');
+      return;
+    }
+    if(targets.length > MAX_PARTICLES) targets = targets.slice(0, MAX_PARTICLES);
+
+    particles = targets.map((target, i)=>{
+      const start = starts[i % starts.length];
+      return {
+        sx: start.x, sy: start.y,
+        tx: target.x, ty: target.y,
+        delay: Math.random()*260,
+        dur: GATHER_MS * (0.78 + Math.random()*0.35),
+        arcSign: Math.random() < 0.5 ? -1 : 1,
+        arcHeight: 24 + Math.random()*50,
+        size: 1.6 + Math.random()*1.4,
+        disperseAngle: Math.random() * Math.PI * 2,
+        disperseSpeed: 70 + Math.random()*170,
+        twinkleSeed: Math.random()*10
+      };
+    });
+
+    const t0 = performance.now();
+
+    function frame(now){
+      const elapsed = now - t0;
+      const stageRect = stage.getBoundingClientRect();
+      const W = stageRect.width, H = stageRect.height;
+      ctx.clearRect(0,0,W,H);
+
+      let phase;
+      if(elapsed < GATHER_MS + 250) phase = 'gather';
+      else if(elapsed < GATHER_MS + 250 + HOLD_MS) phase = 'hold';
+      else if(elapsed < GATHER_MS + 250 + HOLD_MS + DISPERSE_MS) phase = 'disperse';
+      else phase = 'done';
+
+      if(phase === 'done'){
+        ctx.clearRect(0,0,W,H);
+        busy = false;
+        flowerWrap.classList.remove('busy');
+        hint.classList.remove('hide');
+        return;
+      }
+
+      for(const p of particles){
+        let x, y, alpha, glowSize;
+
+        if(phase === 'gather'){
+          const local = Math.min(1, Math.max(0, (elapsed - p.delay) / p.dur));
+          const e = easeOutCubic(local);
+          x = p.sx + (p.tx - p.sx) * e;
+          y = p.sy + (p.ty - p.sy) * e - Math.sin(e*Math.PI) * p.arcHeight * p.arcSign * 0.25;
+          alpha = Math.min(1, local * 1.5 + 0.08);
+          glowSize = p.size * 1.5;
+        } else if(phase === 'hold'){
+          const holdT = (elapsed - (GATHER_MS+250)) / HOLD_MS;
+          const twinkle = 0.92 + 0.08 * Math.sin((holdT*9) + p.twinkleSeed);
+          x = p.tx; y = p.ty;
+          alpha = twinkle;
+          glowSize = p.size * 1.3;
+        } else {
+          const dT = (elapsed - (GATHER_MS+250+HOLD_MS)) / DISPERSE_MS;
+          const e = easeInOutSine(Math.min(1,dT));
+          x = p.tx + Math.cos(p.disperseAngle) * p.disperseSpeed * e * (dT+0.25);
+          y = p.ty + Math.sin(p.disperseAngle) * p.disperseSpeed * e * (dT+0.25) - e*36;
+          alpha = 1 - e;
+          glowSize = p.size * 1.5;
+        }
+
+        alpha = Math.max(0, Math.min(1, alpha));
+        if(alpha <= 0.02) continue;
+
+        const grad = ctx.createRadialGradient(x,y,0,x,y,glowSize*1.8);
+        grad.addColorStop(0, `rgba(245,251,255,${alpha})`);
+        grad.addColorStop(0.5, `rgba(150,200,255,${alpha*0.45})`);
+        grad.addColorStop(1, 'rgba(120,180,255,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x,y, glowSize*1.8, 0, Math.PI*2);
+        ctx.fill();
+
+        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+        ctx.beginPath();
+        ctx.arc(x,y, glowSize*0.85, 0, Math.PI*2);
+        ctx.fill();
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  flowerWrap.addEventListener('click', startEffect);
+})();
+</script>
+
+</body>
+</html>
