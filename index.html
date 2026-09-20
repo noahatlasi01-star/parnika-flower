@@ -183,7 +183,7 @@
     </svg>
   </div>
 
-  <div class="hint" id="hint">روش کلیک کن قشنگم</div>
+  <div class="hint" id="hint">روی گل کلیک کن قشنگم</div>
 </div>
 
 <script>
@@ -326,7 +326,7 @@
   const flowerWrap = document.getElementById('flowerWrap');
   const hint = document.getElementById('hint');
 
-  let dpr = Math.max(1, window.devicePixelRatio || 1);
+  let dpr = Math.min(1.5, Math.max(1, window.devicePixelRatio || 1));
 
   function resizeCanvas(){
     const rect = stage.getBoundingClientRect();
@@ -348,7 +348,7 @@
     });
   }
 
-  const SENTENCE = "این برای توعه";
+  const SENTENCE = "می بخشی من رو ؟";
 
   function getTextTargets(){
     const stageRect = stage.getBoundingClientRect();
@@ -364,21 +364,55 @@
     octx.fillStyle = '#ffffff';
 
     const cx = w/2;
-    const cy = h * 0.20;
+    const maxLineWidth = w * 0.86;
 
-    let fontSize = Math.max(28, Math.min(64, w * 0.095));
-    function fits(size){
+    // split into words so a long sentence can wrap onto a second line
+    const words = SENTENCE.split(' ');
+
+    function widthOf(text, size){
       octx.font = `800 ${size}px 'Vazirmatn', Tahoma, Arial, sans-serif`;
-      return octx.measureText(SENTENCE).width < w * 0.86;
+      return octx.measureText(text).width;
     }
-    while(fontSize > 18 && !fits(fontSize)) fontSize -= 2;
+
+    function wrapAtSize(size){
+      // try single line first
+      if(widthOf(SENTENCE, size) <= maxLineWidth) return [SENTENCE];
+      // greedy wrap into lines
+      const lines = [];
+      let current = '';
+      for(const word of words){
+        const test = current ? current + ' ' + word : word;
+        if(widthOf(test, size) <= maxLineWidth || !current){
+          current = test;
+        } else {
+          lines.push(current);
+          current = word;
+        }
+      }
+      if(current) lines.push(current);
+      return lines;
+    }
+
+    let fontSize = Math.max(30, Math.min(72, w * 0.11));
+    let lines = wrapAtSize(fontSize);
+    while(fontSize > 20 && (lines.length > 2 || lines.some(l => widthOf(l, fontSize) > maxLineWidth))){
+      fontSize -= 2;
+      lines = wrapAtSize(fontSize);
+    }
+
+    const lineHeight = fontSize * 125 / 100 + fontSize * 0.28;
+    const totalHeight = lineHeight * lines.length;
+    const startCy = Math.max(fontSize, h * 0.20 - totalHeight/2 + lineHeight/2);
 
     octx.clearRect(0,0,w,h);
+    octx.fillStyle = '#ffffff';
     octx.font = `800 ${fontSize}px 'Vazirmatn', Tahoma, Arial, sans-serif`;
-    octx.fillText(SENTENCE, cx, cy);
+    lines.forEach((line, i)=>{
+      octx.fillText(line, cx, startCy + i*lineHeight);
+    });
 
     const data = octx.getImageData(0,0,w,h).data;
-    const step = Math.max(2, Math.round(w/280));
+    const step = Math.max(2, Math.round(w/260));
     const points = [];
     for(let y=0; y<h; y+=step){
       for(let x=0; x<w; x+=step){
@@ -402,7 +436,7 @@
   const GATHER_MS = 1300;
   const HOLD_MS = 2600;
   const DISPERSE_MS = 1300;
-  const MAX_PARTICLES = 900;
+  const MAX_PARTICLES = 700;
 
   function startEffect(){
     if(busy) return;
@@ -488,18 +522,14 @@
         alpha = Math.max(0, Math.min(1, alpha));
         if(alpha <= 0.02) continue;
 
-        const grad = ctx.createRadialGradient(x,y,0,x,y,glowSize*1.8);
-        grad.addColorStop(0, `rgba(245,251,255,${alpha})`);
-        grad.addColorStop(0.5, `rgba(150,200,255,${alpha*0.45})`);
-        grad.addColorStop(1, 'rgba(120,180,255,0)');
-        ctx.fillStyle = grad;
+        ctx.fillStyle = `rgba(160,210,255,${alpha*0.5})`;
         ctx.beginPath();
-        ctx.arc(x,y, glowSize*1.8, 0, Math.PI*2);
+        ctx.arc(x,y, glowSize*1.9, 0, Math.PI*2);
         ctx.fill();
 
         ctx.fillStyle = `rgba(255,255,255,${alpha})`;
         ctx.beginPath();
-        ctx.arc(x,y, glowSize*0.85, 0, Math.PI*2);
+        ctx.arc(x,y, glowSize*1.0, 0, Math.PI*2);
         ctx.fill();
       }
 
